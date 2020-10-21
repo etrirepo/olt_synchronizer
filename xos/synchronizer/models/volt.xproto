@@ -1,0 +1,244 @@
+option name = "volt";
+option app_label = "volt";
+
+message VOLTService (Service){
+    option verbose_name = "vOLT Service";
+    option kind = "vOLT";
+    option description = "OLT Access Service";
+    option custom_python = "True";
+
+    required string voltha_url = 1 [
+        help_text = "The Voltha API address. By default voltha-api.default.svc.cluster.local",
+        default = "voltha-api.voltha.svc.cluster.local",
+        max_length = 256];
+    required int32 voltha_port = 2 [
+        help_text = "The Voltha API port. By default 55555",
+        default = 55555];
+}
+
+message OLTDevice (XOSBase){
+    option verbose_name = "OLT Device";
+    option description="Represents a physical OLT device";
+    option custom_python = "True";
+    option sync_implemented = "True";
+
+    required manytoone volt_service->VOLTService:volt_devices = 1:1001 [
+        help_text = "VOLTService that owns this OLT",
+        db_index = True];
+    optional string name = 2 [
+        help_text = "Human-readable name of device",
+        max_length = 256,
+        unique = True];
+    required string device_type = 3 [
+        help_text = "Phyiscal Device Type",
+        default = "openolt",
+        max_length = 256];
+    optional string host = 4 [
+        help_text = "IP Address of physical OLT Device",
+        max_length = 256];
+    optional int32 port = 5 [
+        help_text = "Port Number of physical OLT Device",
+        unique_with = "host"];
+    optional string mac_address = 6 [
+        help_text = "MAC address of physical OLT Device",
+        max_length = 17];
+
+    optional string serial_number = 9 [
+        help_text = "Serial Number",
+        max_length = 256];
+    optional string device_id = 10 [
+        help_text = "Voltha Device ID",
+        feedback_state = True,
+        max_length = 256];
+    optional string admin_state = 11 [
+        help_text = "admin state, whether OLT should be enabled",
+        choices = "(('DISABLED', 'DISABLED'), ('ENABLED', 'ENABLED'))",
+        default = "ENABLED",
+        max_length = 32];
+    optional string oper_status = 12 [
+        help_text = "operational status, whether OLT is active",
+        feedback_state = True,
+        max_length = 256];
+    optional string link_status = 21 [
+        help_text = "connectivity status, whether OLT has connectivity to agg switch",
+        choices = "(('up', 'up'), ('down', 'down'))",
+        feedback_state = True,
+        max_length = 32];
+    optional string of_id = 13 [
+        help_text = "Logical device openflow id",
+        feedback_state = True,
+        max_length = 256];
+    optional string dp_id = 14 [
+        help_text = "Logical device datapath id",
+        max_length = 256];
+
+    required string uplink = 15 [
+        help_text = "uplink port, exposed via sadis",
+        max_length = 256];
+    required string driver = 16 [
+        help_text = "DEPRECATED",
+        default = "voltha",
+        max_length = 32];  // Used to be sent to ONOS, now unused.
+
+    optional string switch_datapath_id = 17 [
+        help_text = "Fabric switch to which the OLT is connected",
+        max_length = 256];
+    optional string switch_port = 18 [
+        help_text = "Fabric port to which the OLT is connected",
+        max_length = 256];
+    optional string outer_tpid = 19 [
+        help_text = "Outer VLAN id field EtherType",
+        max_length = 256];
+
+    optional string nas_id = 20 [
+        help_text = "Authentication ID (propagated to the free-radius server via sadis)",
+        max_length = 256];
+
+    required string technology = 22 [
+        help_text = "The technology being utilized by the adapter",
+        db_index = True,
+        max_length = 16,
+        choices = "(('gpon', 'gpon'), ('xgspon', 'xgspon'))",
+        default = "xgspon"];
+}
+
+message PortBase (XOSBase){
+    option gui_hidden = True;
+    option description = "Base class for Port objects";
+
+    required string name = 1 [
+        help_text = "Human-readable name of port",
+        db_index = True,
+        max_length = 256];
+    required int32 port_no = 3 [
+        help_text = "Port Number"];
+
+    optional string admin_state = 4 [
+        help_text = "admin state, whether port should be enabled",
+        feedback_state = True,
+        max_length = 32];
+    optional string oper_status = 5 [
+        help_text = "operational status, whether port is active",
+        feedback_state = True,
+        max_length = 32];
+}
+
+message PONPort (PortBase){
+    option verbose_name = "PON Port";
+    option description = "PON Port";
+
+    required manytoone olt_device->OLTDevice:pon_ports = 1:1001 [
+        help_text = "OLTDevice that owns this PONPort",
+        db_index = True];
+}
+
+message NNIPort (PortBase) {
+    option verbose_name = "NNI Port";
+    option description = "NNI Port";
+
+    required manytoone olt_device->OLTDevice:nni_ports = 1:1002 [
+        help_text = "OLTDevice that owns this NNIPort",
+        db_index = True];
+}
+
+message ONUDevice (XOSBase){
+    option verbose_name = "ONU Device";
+    option description = "Represents a physical ONU device";
+    option custom_python = "True";
+    option sync_implemented = "True";
+
+    required manytoone pon_port->PONPort:onu_devices = 1:1001 [
+        help_text = "PONPort that connects this ONUDevice to an OLTDevice",
+        db_index = True];
+    required string serial_number = 2 [
+        help_text = "Serial number of ONU Device",
+        max_length = 256,
+        tosca_key=True,
+        unique = True];
+    required string vendor = 3 [
+        help_text = "Vendor of ONU Device",
+        max_length = 256];
+    required string device_type = 4 [
+        help_text = "Device Type",
+        default = "asfvolt16_olt",
+        max_length = 256];
+
+    optional string device_id = 5 [
+        help_text = "Voltha Device ID",
+        feedback_state = True,
+        max_length = 256];
+    optional string admin_state = 6 [
+        help_text = "admin state, whether port should be enabled",
+        choices = "(('DISABLED', 'DISABLED'), ('ENABLED', 'ENABLED'), ('ADMIN_DISABLED', 'ADMIN_DISABLED'))",
+        default = "ENABLED",
+        max_length = 32];
+    optional string oper_status = 7 [
+        help_text = "oper_status",
+        // TODO: Should add "choices"
+        feedback_state = True,
+        max_length = 32];
+    optional string connect_status = 8 [
+        help_text = "operational status, whether port is active",
+        feedback_state = True,
+        max_length = 32];
+    optional string reason = 9 [
+        help_text = "ONU device configuration state machine status message",
+        feedback_state = True,
+        text = True];
+}
+
+message ANIPort (PortBase) {
+    option verbose_name = "ANI Port";
+    option description="Access Node Interface Port";
+    required manytoone onu_device->ONUDevice:ani_ports = 1:1001 [
+        help_text = "ONUDevice that owns this ANIPort",
+        db_index = True];
+}
+
+message UNIPort (PortBase) {
+    option verbose_name = "UNI Port";
+    option description = "User Network Interface Port";
+    required manytoone onu_device->ONUDevice:uni_ports = 1:1002 [
+        help_text = "ONUDevice that owns this UNIPort",
+        db_index = True];
+}
+
+message VOLTServiceInstance (ServiceInstance){
+    option kind = "vOLT";
+    option owner_class_name = "VOLTService";
+    option verbose_name = "vOLT Service Instance";
+    option description = "Represents subscriber tenancy in the VOLT Service";
+    option policy_implemented = "True";
+    option sync_implemented = "True";
+
+    optional string description = 1 [
+        help_text = "Human-readable description",
+        text = True];
+    optional manytoone onu_device->ONUDevice:volt_service_instances = 2:1003 [
+        help_text = "ONUDevice that belongs to this Subscriber chain",
+        db_index = True];
+}
+
+message TechnologyProfile (XOSBase) {
+    option verbose_name = "Technology Profile";
+    option description = "The Technology Profile that is utilized by VOLTHA";
+    option custom_python = "True";
+
+    required string technology = 1 [
+        help_text = "The technology being utilized by the adaptor",
+        db_index = True,
+        tosca_key = True,
+        choices = "(('gpon', 'gpon'), ('xgspon', 'xgspon'))",
+        max_length = 16];
+    required int32 profile_id = 2 [
+        help_text = "The numeric id of the profile",
+        db_index = True,
+        tosca_key = True,
+        min_value = 64,
+        max_value = 255,
+        unique_with = "technology"];
+
+    required string profile_value = 3 [
+        help_text = "The technology profile value in JSON format",
+        max_length = 4096];
+}
