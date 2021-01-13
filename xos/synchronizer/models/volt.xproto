@@ -9,7 +9,7 @@ message VOLTService (Service){
 
     required string voltha_url = 1 [
         help_text = "The Voltha API address. By default voltha-api.default.svc.cluster.local",
-        default = "voltha.default.svc.cluster.local",
+        default = "voltha-api.voltha.svc.cluster.local",
         max_length = 256];
     required int32 voltha_port = 2 [
         help_text = "The Voltha API port. By default 55555",
